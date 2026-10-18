@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[PRUEBA] Crear usuario inicial</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+:root{--bg:#0a1628;--bg2:#0f1f3d;--border2:rgba(59,130,246,.22);--text:#e8eef8;--text2:#7a9cc0;--red3:#ff6b7a;--red-dim:rgba(232,25,44,.1);--green:#00e676;--green-dim:rgba(0,230,118,.08);--blue:#3b82f6;--blue2:#93c5fd}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;padding:20px}
+.wrap{max-width:520px;margin:0 auto}
+h1{font-size:18px;margin-bottom:4px}
+.sub{color:var(--text2);font-size:12px;margin-bottom:20px}
+.card{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:18px;margin-bottom:16px}
+label{display:block;font-size:11px;color:var(--text2);margin:12px 0 4px}
+input,select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:8px;padding:10px;color:var(--text);font-size:14px;outline:none}
+select option{background:#0f1f3d}
+.status{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-top:14px}
+.st-ok{background:var(--green-dim);color:var(--green)}
+.st-err{background:var(--red-dim);color:var(--red3)}
+.btn{border:none;border-radius:10px;padding:12px 20px;font-weight:700;font-size:13px;cursor:pointer;width:100%;margin-top:16px;background:var(--blue);color:#fff}
+.btn:disabled{opacity:.4}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>👤 Crear usuario (base de PRUEBA)</h1>
+  <div class="sub">Crea la cuenta de acceso y su perfil con rol. Sirve para el primer admin y para usuarios de prueba. Usarla ANTES de poner las reglas nuevas.</div>
+  <div class="card">
+    <label>Nombre</label><input id="n" placeholder="David Luna">
+    <label>Usuario (sin espacios, ej: dluna)</label><input id="u" placeholder="dluna" autocapitalize="none">
+    <label>Contraseña (mínimo 6 caracteres)</label><input id="p" type="password">
+    <label>Rol</label>
+    <select id="r"><option value="admin">Admin</option><option value="editor">Editor</option><option value="gerencia">Gerencia</option><option value="viewer">Solo Lectura</option></select>
+    <button class="btn" id="go">Crear usuario</button>
+    <div id="st"></div>
+  </div>
+</div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA86fgNGq-rqevni3qkl4w2_2mRNb8MzXg",
+  authDomain: "stock-daser-test.firebaseapp.com",
+  databaseURL: "https://stock-daser-test-default-rtdb.firebaseio.com",
+  projectId: "stock-daser-test",
+  storageBucket: "stock-daser-test.firebasestorage.app",
+  messagingSenderId: "317680119526",
+  appId: "1:317680119526:web:aca20cb16eafeb46d39527"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
+const USER_DOMAIN = '@freddy-stock.app';
+const st = document.getElementById('st');
+function say(ok, msg){ st.className = 'status ' + (ok ? 'st-ok' : 'st-err'); st.textContent = msg; }
+
+document.getElementById('go').addEventListener('click', function(){
+  const name = document.getElementById('n').value.trim();
+  const user = document.getElementById('u').value.trim().toLowerCase();
+  const pass = document.getElementById('p').value;
+  const role = document.getElementById('r').value;
+  if (!name || !user || !pass) { say(false, 'Completá todos los campos.'); return; }
+  if (!/^[a-z0-9._-]+$/.test(user)) { say(false, 'El usuario solo puede tener letras, números, punto, guion o guion bajo.'); return; }
+  if (pass.length < 6) { say(false, 'La contraseña necesita al menos 6 caracteres.'); return; }
+  const btn = document.getElementById('go'); btn.disabled = true; btn.textContent = 'Creando...';
+  auth.createUserWithEmailAndPassword(user + USER_DOMAIN, pass).then(function(cred){
+    const uid = cred.user.uid;
+    return db.ref('perfiles/' + uid).set({ name: name, user: user, role: role }).then(function(){ return auth.signOut(); });
+  }).then(function(){
+    say(true, '✅ Listo: usuario "' + user + '" creado con rol ' + role + '. Ya podés crear otro o entrar a la app de prueba.');
+    document.getElementById('p').value = '';
+  }).catch(function(e){
+    var m = 'No se pudo crear: ' + (e && e.code ? e.code : e.message);
+    if (e && e.code === 'auth/operation-not-allowed') m = 'Falta habilitar "Correo electrónico/contraseña" en Firebase > Authentication > Método de acceso.';
+    if (e && e.code === 'auth/email-already-in-use') m = 'Ese usuario ya existe.';
+    if (e && e.code === 'PERMISSION_DENIED') m = 'La base rechazó la escritura: ¿ya pusiste las reglas nuevas? Esta herramienta va ANTES.';
+    say(false, m);
+  }).then(function(){ btn.disabled = false; btn.textContent = 'Crear usuario'; });
+});
+</script>
+</body>
+</html>

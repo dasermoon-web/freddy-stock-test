@@ -1,0 +1,29 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "perfiles": {
+      ".read": "auth != null && root.child('perfiles').child(auth.uid).child('role').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('perfiles').child(auth.uid).child('role').val() === 'admin'",
+        ".validate": "newData.hasChildren(['name','user','role']) && newData.child('role').val().matches(/^(admin|editor|viewer|gerencia)$/)"
+      }
+    },
+
+    "stock": {
+      ".read": "auth != null && root.child('perfiles').child(auth.uid).child('role').exists()",
+      ".write": "auth != null && (root.child('perfiles').child(auth.uid).child('role').val() === 'admin' || root.child('perfiles').child(auth.uid).child('role').val() === 'editor')"
+    },
+
+    "log": {
+      ".read": "auth != null && (root.child('perfiles').child(auth.uid).child('role').val() === 'admin' || root.child('perfiles').child(auth.uid).child('role').val() === 'editor' || root.child('perfiles').child(auth.uid).child('role').val() === 'gerencia')",
+      ".write": "auth != null && root.child('perfiles').child(auth.uid).child('role').val() === 'admin'",
+      ".indexOn": ["ts", "cod"],
+      "$id": {
+        ".write": "auth != null && !data.exists() && newData.exists() && (root.child('perfiles').child(auth.uid).child('role').val() === 'admin' || root.child('perfiles').child(auth.uid).child('role').val() === 'editor')"
+      }
+    }
+  }
+}
